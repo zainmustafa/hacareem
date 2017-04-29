@@ -10,7 +10,6 @@ router.get('/', function (req, res, next) {
   const googleMapsClient = require('@google/maps').createClient({
     key: input.key
   });
-
   const query = {
     origin: JSON.parse(param.origin),
     destination: JSON.parse(param.destination),
