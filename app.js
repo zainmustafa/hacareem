@@ -4,9 +4,16 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var fs = require('fs');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
+
+var obj = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
+
+var googleMapsClient = require('@google/maps').createClient({
+    key: obj.key
+});
 
 var app = express();
 
