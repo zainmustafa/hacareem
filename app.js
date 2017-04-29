@@ -1,14 +1,18 @@
 var express = require('express');
 var path = require('path');
+var mongoose = require('mongoose');
+var db = mongoose.connection;
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
+var fs = require('fs');
+var configs = require('./config');
 var index = require('./routes/index');
-var users = require('./routes/users');
+var waypoints = require('./routes/waypoints');
 
 var app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -23,7 +27,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
-app.use('/users', users);
+app.use('/waypoints', waypoints);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -43,4 +47,38 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+db.on('connected', function () {
+  console.log('Mongoose default connection open to ' + configs.dbHost);
+});
+
+// If the connection throws an error
+db.on('error',function (err) {
+  console.log('Mongoose default connection error: ' + err);
+});
+
+// When the connection is disconnected
+db.on('disconnected', function () {
+  console.log('Mongoose default connection disconnected');
+});
+
+var gracefulExit = function() {
+  db.close(function () {
+    console.log('Mongoose default connection with DB :' +  configs.dbHost + ' is disconnected through app termination');
+    process.exit(0);
+  });
+}
+
+// If the Node process ends, close the Mongoose connection
+process.on('SIGINT', gracefulExit).on('SIGTERM', gracefulExit);
+
+try {
+
+  mongoose.connect( configs.dbHost );
+
+  console.log("Trying to connect to DB " +  configs.dbHost);
+
+} catch (err) {
+
+  console.log("Sever initialization failed ", err.message)
+};
 module.exports = app;
