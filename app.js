@@ -12,6 +12,7 @@ var configs = require('./config');
 
 var index = require('./routes/index');
 var waypoints = require('./routes/waypoints');
+var shops = require('./routes/shops');
 
 var obj = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
 
@@ -36,6 +37,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
 app.use('/waypoints', waypoints);
+app.use('/shops', shops);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
