@@ -7,9 +7,17 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var fs = require('fs');
+
 var configs = require('./config');
+
 var index = require('./routes/index');
 var waypoints = require('./routes/waypoints');
+
+var obj = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
+
+var googleMapsClient = require('@google/maps').createClient({
+    key: obj.key
+});
 
 var app = express();
 
