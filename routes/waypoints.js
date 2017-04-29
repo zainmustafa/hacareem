@@ -12,8 +12,7 @@ router.get('/', function(req, res, next) {
     });
    var a =  JSON.parse(param.origin);
    var b =  JSON.parse(param.destination);
-   console.log(a);
-   console.log(b);
+  
 var query = {
   origin: a,
   destination: b,
