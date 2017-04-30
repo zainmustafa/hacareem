@@ -12,10 +12,10 @@ const googleMapsClient = require('@google/maps').createClient({
 const discountedPlaces = [
     {
         "name" : 'United King',
-        "lat": 24.8847882,
-        "lng": 67.0631257,
-        "dealDescription": '',
-        "category" : 'food'
+        "lat": "24.8712801",
+        "lng": "67.06038389999999",
+        "dealDescription": "",
+        "category" : "food"
     },
     {
         "name" : 'J.',
@@ -42,12 +42,7 @@ router.get('/', function (req, res, next) {
         const waypoints = JSON.parse(result);
         const route = waypoints.routes[0].legs;
         calculateRadius(route)
-        .then((restrauntsArr) => {
-            const mapArr = restrauntsArr[0].results.map((place) => {
-                const { lat, lng} = place.geometry.location; 
-                return Object.assign({}, place, { lat, lng });
-            });
-            const relevantPlaces = filterRelevantPlaces(mapArr);
+        .then((relevantPlaces) => {
             res.send({ "status": true, relevantPlaces });
         })
         .catch((err) => {
@@ -89,10 +84,10 @@ function distanceInMeters(data) {
 
 function calculateRadius(routes) {
     return new Promise((resolve, reject) => {
-        let req = null, distance = 0, fixedDistance = 0, minRadius = 100, maxRadius = 5000, maxReq = 5 , minReq = 1;
+        let req = null, fixedDistance = 0, minRadius = 100, maxRadius = 5000, maxReq = 5 , minReq = 1;
         let dis = distanceInMeters(routes)[0];
         const totalDistance = dis.distance;
-        req = parseFloat(totalDistance / 4000);
+        req = parseInt(totalDistance / 500);
         if(req > maxReq) {
             req = maxReq;
         } 
@@ -100,34 +95,51 @@ function calculateRadius(routes) {
             req = minReq;
         } 
 
-        let radius = parseFloat(totalDistance / req);
+        let radius = parseInt(totalDistance / req);
         if(radius >= maxRadius) {
             radius = maxRadius;
         }
         if (radius <= minRadius) {
             radius = minRadius;
         } 
-        
         const steps = routes[0].steps;
-        fixedDistance = radius * 2;
+        fixedDistance = radius;
         let restrauntsArr = [];
+        let distance = 0;
         for(let i=0; i < steps.length ; i++) {
-            const dist = steps[i].distance + distance;
+            const dist = kmToMeter(steps[i].distance) + distance;
             if(dist >= fixedDistance) {
                 distance = 0;
+                const { lat, lng } = steps[i].end_location; 
+                reqRestraunts(lat,lng,radius)
+                .then((restraunts) => {
+
+                    const mapArr = restraunts.results.map((place) => {
+                    const { lat, lng} = place.geometry.location; 
+                        return Object.assign({}, place, { lat, lng });
+                    });
+                    const relevantPlaces = filterRelevantPlaces(mapArr);
+                    relevantPlaces.length && restrauntsArr.push(relevantPlaces);
+                    i === (steps.length - 1) ? resolve(restrauntsArr) : ''; 
+                });
             } else {
-                distance += steps[i].distance;
+                distance += kmToMeter(steps[i].distance);
             }
-            const { lat, lng } = steps[i].end_location; 
-            reqRestraunts(lat,lng,radius)
-            .then((restraunts) => {
-                restrauntsArr.push(restraunts);
-                i === steps.length - 1 ? resolve(restrauntsArr) : ''; 
-            });
             
         }
     })
 
+}
+
+function kmToMeter(dist) {
+    const str = dist.text.split(" ")
+    let unit = str[1]; 
+    let distance = parseFloat(str[0]);
+    if(unit == 'km') {
+        distance = (distance * 1000);
+        unit = 'm'; 
+    } 
+    return distance; 
 }
 
 function filterRelevantPlaces(placesArr) {
@@ -135,6 +147,8 @@ function filterRelevantPlaces(placesArr) {
     for(var j =0; j< placesArr.length; j++ ) {
         for(var i =0; i< discountedPlaces.length; i++ ) {
             if(placesArr[j].lat == discountedPlaces[i].lat && placesArr[j].lng == discountedPlaces[i].lng) {
+                const key = "${placesArr[j].lat},${placesArr[j].lng}";
+                config.client.setex("key", 50000, JSON.stringify(placesArr[j]));
                 arr.push(placesArr[j]);
                 break;
             }
