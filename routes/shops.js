@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const config = require('./../config.js');
+const GooglePlaces = require( 'node-googleplaces');
 const fs = require('fs');
 const input = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
+const places = new GooglePlaces(input.key);
 const googleMapsClient = require('@google/maps').createClient({
   key: input.key
 });
 
-/* GET radius listing. */
+/* GET shops listing. */
 router.get('/', function (req, res, next) {
     const param = req.query;
     config.client.get('user', function(err, result){
@@ -16,7 +18,6 @@ router.get('/', function (req, res, next) {
         const route = waypoints.routes[0].legs;
         const radiusArr = calculateRadius(route);
         console.log("radius arr => ",radiusArr);
-        
         res.send({ "status": true, radius: radiusArr });
         
     })
@@ -24,17 +25,19 @@ router.get('/', function (req, res, next) {
 
 function reqRestraunts(lat, lng, radius) {
     return new Promise((resolve, reject) => {
-        console.log("radius => ",radius);
-        const latLng = [lat,lng];
+        const latLng = `${lat},${lng}`;
         const request = {
             location: latLng,
             radius: radius,
             types: ['store']
         };
-        console.log("request => ",request);
-        googleMapsClient.nearbySearch(request, (err, response) => {
-            if (err) console.log(err)
+        places.nearbySearch(request)
+        .then((res) => {
+            console.log(res.body);
             resolve(response);
+        })
+        .catch((err) => {
+            reject(err);
         });
     })
     
@@ -56,12 +59,8 @@ function distanceInMeters(data) {
 function calculateRadius(routes) {
     let req = null, distance = 0, fixedDistance = 0, minRadius = 100, maxRadius = 5000, maxReq = 5 , minReq = 1;
     let dis = distanceInMeters(routes)[0];
-    console.log("die => ", dis);
     const totalDistance = dis.distance;
-    console.log("distance => ", totalDistance);
     const noOfReq = parseFloat(totalDistance / 4000);
-    console.log("no of req ",noOfReq);
-    console.log("maxReq ",maxReq);
     if(noOfReq > maxReq) {
         req = maxReq;
     } else if (noOfReq < minReq) {
@@ -92,9 +91,10 @@ function calculateRadius(routes) {
         const { lat, lng } = steps[i].end_location; 
         reqRestraunts(lat,lng,radius)
         .then((restraunts) => {
-            console.log("wah saien => ",restraunts);
+            restrauntsArr.push(restraunts)
         });
     }
+    
 
 
 }
