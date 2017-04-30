@@ -24,15 +24,10 @@ router.get('/', function (req, res, next) {
     if (err) {
       res.send({ "status": false, error: err });
     }
-    config.client.setex("user", 180, JSON.stringify(response.json));
+    config.client.setex("user", 50000, JSON.stringify(response.json));
     
     res.send({ "status": true, wayPoints: response.json });
   });
-
-  // config.client.get("username", function(error, result) {
-  //   console.log('User name ', result);
-    
-  // });
 
 });
 
