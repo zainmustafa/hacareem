@@ -2,14 +2,20 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const config = require('./../config.js');
+const input = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
+const googleMapsClient = require('@google/maps').createClient({
+  key: input.key
+});
+
 
 /* GET waypoints listing. */
 router.get('/', function (req, res, next) {
   const param = req.query;
-  const input = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
-  const googleMapsClient = require('@google/maps').createClient({
-    key: input.key
-  });
+  // store the key-value pair (username:totalStars) in our cache
+  // with an expiry of 1 minute (60s)
+  //config.client.setex("username", 60, "totalStars");
+  // return the result to the user
+
   const query = {
     origin: JSON.parse(param.origin),
     destination: JSON.parse(param.destination),
@@ -18,10 +24,15 @@ router.get('/', function (req, res, next) {
     if (err) {
       res.send({ "status": false, error: err });
     }
-    config.waypoints = response.json;
-    console.log("config ==> ", config);
+    config.client.setex("user", 180, JSON.stringify(response.json));
+    
     res.send({ "status": true, wayPoints: response.json });
   });
+
+  // config.client.get("username", function(error, result) {
+  //   console.log('User name ', result);
+    
+  // });
 
 });
 
