@@ -119,16 +119,12 @@ function calculateRadius(routes) {
                         return Object.assign({}, place, { lat, lng });
                     });
                     const relevantPlaces = filterRelevantPlaces(mapArr);
-                    
                     relevantPlaces.length && restrauntsArr.push(relevantPlaces);
                     i === (steps.length - 1) ? resolve(restrauntsArr) : ''; 
                 });
             } else {
                 distance += kmToMeter(steps[i].distance);
             }
-
-            
-            
             
         }
     })
@@ -151,6 +147,8 @@ function filterRelevantPlaces(placesArr) {
     for(var j =0; j< placesArr.length; j++ ) {
         for(var i =0; i< discountedPlaces.length; i++ ) {
             if(placesArr[j].lat == discountedPlaces[i].lat && placesArr[j].lng == discountedPlaces[i].lng) {
+                const key = "${placesArr[j].lat},${placesArr[j].lng}";
+                config.client.setex("key", 50000, JSON.stringify(placesArr[j]));
                 arr.push(placesArr[j]);
                 break;
             }
