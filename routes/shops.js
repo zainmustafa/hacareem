@@ -45,7 +45,7 @@ router.get('/', function (req, res, next) {
         .then((restrauntsArr) => {
             const mapArr = restrauntsArr[0].results.map((place) => {
                 const { lat, lng} = place.geometry.location; 
-                return { lat, lng , name: place.name };
+                return Object.assign({}, place, { lat, lng });
             });
             const relevantPlaces = filterRelevantPlaces(mapArr);
             res.send({ "status": true, relevantPlaces });
