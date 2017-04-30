@@ -15,10 +15,11 @@ router.get('/', function (req, res, next) {
   // with an expiry of 1 minute (60s)
   //config.client.setex("username", 60, "totalStars");
   // return the result to the user
-
+var originArr = param.origin.split(',');
+var destArr = param.destination.split(',');
   const query = {
-    origin: JSON.parse(param.origin),
-    destination: JSON.parse(param.destination),
+    origin: originArr,
+    destination: destArr,
   }
   googleMapsClient.directions(query, (err, response) => {
     if (err) {
