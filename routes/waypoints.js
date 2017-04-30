@@ -5,7 +5,10 @@ var fs = require('fs');
 /* GET users listing. */
 router.get('/', function(req, res, next) {
   var param = req.query;
-  
+  client.setex("username", 60, "totalStars");
+  client.get(username, function(error, result) {
+        console.log("Redis Data ", result);
+  });
   var obj = JSON.parse(fs.readFileSync('data/development.json', 'utf8'));
   var googleMapsClient = require('@google/maps').createClient({
     key: obj.key
