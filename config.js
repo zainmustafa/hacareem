@@ -19,8 +19,4 @@ config.client.on('error', function (err) {
     console.log("Error " + err);
 });
 
-// config.direction = function(){
-//   return  
-// }
-
 module.exports = config;

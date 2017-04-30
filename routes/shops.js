@@ -9,6 +9,31 @@ const googleMapsClient = require('@google/maps').createClient({
   key: input.key
 });
 
+const discountedPlaces = [
+    {
+        "name" : 'United King',
+        "lat": 24.8847882,
+        "lng": 67.0631257,
+        "dealDescription": '',
+        "category" : 'food'
+    },
+    {
+        "name" : 'J.',
+        "lat": '1000.02',
+        "lng": '1111.012332',
+        "dealDescription": '',
+        "category" : 'clothing'
+    },
+    {
+        "name" : 'foot wear',
+        "lat": '23482309482.080',
+        "lng": '28732.00',
+        "dealDescription": '',
+        "category" : 'shopping'
+    }
+];
+
+
 /* GET shops listing. */
 router.get('/', function (req, res, next) {
     const param = req.query;
@@ -16,10 +41,18 @@ router.get('/', function (req, res, next) {
         if(err) throw err;
         const waypoints = JSON.parse(result);
         const route = waypoints.routes[0].legs;
-        const radiusArr = calculateRadius(route);
-        console.log("radius arr => ",radiusArr);
-        res.send({ "status": true, radius: radiusArr });
-        
+        calculateRadius(route)
+        .then((restrauntsArr) => {
+            const mapArr = restrauntsArr[0].results.map((place) => {
+                const { lat, lng} = place.geometry.location; 
+                return { lat, lng , name: place.name };
+            });
+            const relevantPlaces = filterRelevantPlaces(mapArr);
+            res.send({ "status": true, relevantPlaces });
+        })
+        .catch((err) => {
+            res.send({ "status": false, err });
+        });
     })
 });
 
@@ -33,14 +66,12 @@ function reqRestraunts(lat, lng, radius) {
         };
         places.nearbySearch(request)
         .then((res) => {
-            console.log(res.body);
-            resolve(response);
+            resolve(res.body);
         })
         .catch((err) => {
             reject(err);
         });
     })
-    
 }
 
 function distanceInMeters(data) {
@@ -57,46 +88,59 @@ function distanceInMeters(data) {
 }
 
 function calculateRadius(routes) {
-    let req = null, distance = 0, fixedDistance = 0, minRadius = 100, maxRadius = 5000, maxReq = 5 , minReq = 1;
-    let dis = distanceInMeters(routes)[0];
-    const totalDistance = dis.distance;
-    const noOfReq = parseFloat(totalDistance / 4000);
-    if(noOfReq > maxReq) {
-        req = maxReq;
-    } else if (noOfReq < minReq) {
-        req = minReq;
-    } else {
-        console.log("no of req else");
-    }
+    return new Promise((resolve, reject) => {
+        let req = null, distance = 0, fixedDistance = 0, minRadius = 100, maxRadius = 5000, maxReq = 5 , minReq = 1;
+        let dis = distanceInMeters(routes)[0];
+        const totalDistance = dis.distance;
+        req = parseFloat(totalDistance / 4000);
+        if(req > maxReq) {
+            req = maxReq;
+        } 
+        if (req < minReq) {
+            req = minReq;
+        } 
 
-    let radius = parseFloat(totalDistance / req);
-    if(radius > maxRadius) {
-        radius = maxRadius;
-    } else if (radius < minRadius) {
-        radius = minRadius;
-    } 
-    else {
-        console.log("radius else");
-    }
-    const steps = routes[0].steps;
-    fixedDistance = radius * 2;
-    let restrauntsArr = [];
-    for(let i=0; i < steps.length ; i++) {
-        const dist = steps[i].distance + distance;
-        if(dist >= fixedDistance) {
-            distance = 0;
-        } else {
-            distance += steps[i].distance;
+        let radius = parseFloat(totalDistance / req);
+        if(radius >= maxRadius) {
+            radius = maxRadius;
         }
-        const { lat, lng } = steps[i].end_location; 
-        reqRestraunts(lat,lng,radius)
-        .then((restraunts) => {
-            restrauntsArr.push(restraunts)
-        });
+        if (radius <= minRadius) {
+            radius = minRadius;
+        } 
+        
+        const steps = routes[0].steps;
+        fixedDistance = radius * 2;
+        let restrauntsArr = [];
+        for(let i=0; i < steps.length ; i++) {
+            const dist = steps[i].distance + distance;
+            if(dist >= fixedDistance) {
+                distance = 0;
+            } else {
+                distance += steps[i].distance;
+            }
+            const { lat, lng } = steps[i].end_location; 
+            reqRestraunts(lat,lng,radius)
+            .then((restraunts) => {
+                restrauntsArr.push(restraunts);
+                i === steps.length - 1 ? resolve(restrauntsArr) : ''; 
+            });
+            
+        }
+    })
+
+}
+
+function filterRelevantPlaces(placesArr) {
+    let arr = [];
+    for(var j =0; j< placesArr.length; j++ ) {
+        for(var i =0; i< discountedPlaces.length; i++ ) {
+            if(placesArr[j].lat == discountedPlaces[i].lat && placesArr[j].lng == discountedPlaces[i].lng) {
+                arr.push(placesArr[j]);
+                break;
+            }
+        }
     }
-    
-
-
+    return arr;
 }
 
 module.exports = router;
